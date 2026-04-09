@@ -1,0 +1,273 @@
+🎙️ **GUION COMPLETO CON COMANDOS — PRÁCTICA 1: WEBMIN EN ORACLE LINUX 9.7**
+
+---
+
+**(Inicio del video)**
+
+Hola, en este video voy a realizar la instalación y configuración de Webmin en Oracle Linux 9.7, ejecutándose en Hyper-V, donde esta máquina funcionará como Ansible Controller.
+
+---
+
+**(Preparación inicial del sistema)**
+
+Lo primero que voy a hacer es actualizar el sistema:
+
+```bash
+sudo dnf update -y
+```
+
+Ahora instalo herramientas básicas necesarias para la administración:
+
+```bash
+sudo dnf install -y wget curl vim net-tools git tar unzip firewalld
+```
+
+Habilito e inicio el firewall:
+
+```bash
+sudo systemctl enable firewalld --now
+```
+
+Verifico la versión del sistema:
+
+```bash
+cat /etc/oracle-release
+uname -r
+```
+
+---
+
+**(Instalación de Webmin)**
+
+Ahora voy a agregar el repositorio de Webmin:
+
+```bash
+sudo tee /etc/yum.repos.d/webmin.repo << 'EOF'
+[Webmin]
+name=Webmin Distribution Neutral
+baseurl=https://download.webmin.com/download/yum
+enabled=1
+gpgcheck=1
+gpgkey=https://download.webmin.com/jcameron-key.asc
+EOF
+```
+
+Importo la clave GPG:
+
+```bash
+wget -q https://download.webmin.com/jcameron-key.asc
+sudo rpm --import jcameron-key.asc
+```
+
+Instalo Webmin:
+
+```bash
+sudo dnf install -y webmin
+```
+
+Habilito y levanto el servicio:
+
+```bash
+sudo systemctl enable webmin --now
+```
+
+Verifico que esté corriendo:
+
+```bash
+sudo systemctl status webmin
+```
+
+---
+
+**(Configuración del firewall)**
+
+Abro el puerto 10000 para permitir acceso a Webmin:
+
+```bash
+sudo firewall-cmd --permanent --add-port=10000/tcp
+sudo firewall-cmd --reload
+```
+
+Verifico los puertos abiertos:
+
+```bash
+sudo firewall-cmd --list-ports
+```
+
+---
+
+**(Acceso a Webmin)**
+
+Ahora accedo desde el navegador:
+
+```
+https://IP_DE_TU_VM:10000
+```
+
+Usuario: root
+Contraseña: la que tenga configurada
+
+Si aparece advertencia SSL, la acepto.
+
+---
+
+**(Administración de usuarios)**
+
+Desde Webmin creo un usuario.
+
+Ahora verifico desde la terminal:
+
+```bash
+id nombreusuario
+```
+
+Si elimino un usuario, verifico así:
+
+```bash
+grep nombreusuario /etc/passwd
+```
+
+---
+
+**(Gestión de servicios - SSH)**
+
+Inicio el servicio SSH:
+
+```bash
+sudo systemctl start sshd
+```
+
+Detengo el servicio:
+
+```bash
+sudo systemctl stop sshd
+```
+
+Reinicio el servicio:
+
+```bash
+sudo systemctl restart sshd
+```
+
+Verifico el estado:
+
+```bash
+sudo systemctl status sshd
+```
+
+---
+
+**(Configuración de red - IP estática)**
+
+Primero veo las interfaces:
+
+```bash
+nmcli device status
+ip addr show
+```
+
+Configuro IP estática:
+
+```bash
+sudo nmcli con mod "nombre-conexion" \
+ipv4.addresses 192.168.1.100/24 \
+ipv4.gateway 192.168.1.1 \
+ipv4.dns "8.8.8.8 8.8.4.4" \
+ipv4.method manual
+```
+
+Aplico cambios:
+
+```bash
+sudo nmcli con up "nombre-conexion"
+```
+
+---
+
+**(Administración de software)**
+
+Instalo un paquete de prueba:
+
+```bash
+sudo dnf install -y htop
+```
+
+Elimino el paquete:
+
+```bash
+sudo dnf remove -y htop
+```
+
+Actualizo el sistema:
+
+```bash
+sudo dnf update -y
+```
+
+---
+
+**(Gestión de archivos)**
+
+Listo archivos:
+
+```bash
+ls -la /var/www/
+```
+
+Edito un archivo:
+
+```bash
+sudo vim /etc/motd
+```
+
+Creo un archivo de prueba:
+
+```bash
+echo "archivo de prueba" | sudo tee /tmp/prueba_webmin.txt
+```
+
+Elimino el archivo:
+
+```bash
+sudo rm /tmp/prueba_webmin.txt
+```
+
+---
+
+**(Monitorización del sistema)**
+
+Reviso memoria RAM:
+
+```bash
+free -h
+```
+
+Monitoreo CPU en tiempo real:
+
+```bash
+top
+```
+
+Reviso almacenamiento:
+
+```bash
+df -h
+```
+
+Reviso rendimiento:
+
+```bash
+vmstat 1 5
+```
+
+---
+
+**(Cierre del video)**
+
+Y con esto finalizo la práctica de instalación y uso de Webmin en Oracle Linux 9.7.
+
+Como se pudo ver, Webmin facilita la administración del sistema mediante interfaz gráfica, pero siempre es importante validar los cambios desde la terminal.
+
+Gracias por ver el video.
+
+---
