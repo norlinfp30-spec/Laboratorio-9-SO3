@@ -270,4 +270,263 @@ Como se pudo ver, Webmin facilita la administración del sistema mediante interf
 
 Gracias por ver el video.
 
----
+
+🟢 PRÁCTICA 2 — Despliegue de VM con Terraform en Digital Ocean
+
+📋 GUIÓN
+🎤 INTRODUCCIÓN
+
+"En esta práctica vamos a usar Terraform para desplegar una máquina virtual en Digital Ocean de forma automatizada. Terraform es una herramienta de infraestructura como código que nos permite definir nuestra infraestructura en archivos de configuración y crearla con simples comandos."
+
+
+PARTE 1 — Instalar Terraform
+🎤 Di esto:
+
+"Vamos a instalar Terraform en nuestra máquina Oracle Linux 9.7. Para esto agregamos el repositorio oficial de HashiCorp."
+
+bash# Instalar el plugin de repositorios
+sudo dnf install -y dnf-plugins-core
+
+# Agregar el repositorio oficial de HashiCorp
+sudo tee /etc/yum.repos.d/hashicorp.repo << 'EOF'
+[hashicorp]
+name=Hashicorp Stable - $basearch
+baseurl=https://rpm.releases.hashicorp.com/RHEL/9/$basearch/stable
+enabled=1
+gpgcheck=1
+gpgkey=https://rpm.releases.hashicorp.com/gpg
+EOF
+
+# Instalar Terraform
+sudo dnf install -y terraform
+
+# Verificar la instalación
+terraform version
+🎤 Di:
+
+"Terraform está instalado correctamente. Podemos ver la versión instalada en pantalla."
+
+
+PARTE 2 — Generar llave SSH
+🎤 Di esto:
+
+"Necesitamos una llave SSH para conectarnos a la VM que vamos a crear. Vamos a generar un par de llaves usando el algoritmo ed25519."
+
+bash# Verificar si ya existe una llave SSH
+ls -la ~/.ssh/
+
+# Generar la llave SSH (presiona Enter en todo para sin passphrase)
+ssh-keygen -t ed25519 -C "ansible-controller-oracle"
+
+# Ver la llave pública generada
+cat ~/.ssh/id_ed25519.pub
+🎤 Di:
+
+"Tenemos nuestra llave pública generada. Esta llave será la que Terraform suba a Digital Ocean para que podamos conectarnos a la VM sin contraseña."
+
+
+PARTE 3 — Obtener token de Digital Ocean
+🎤 Di esto (mientras abres el navegador):
+
+"Para que Terraform pueda comunicarse con Digital Ocean necesitamos un token de API. Vamos al portal de Digital Ocean."
+
+Muestra en el navegador:
+
+Ingresa a cloud.digitalocean.com
+Ve a API en el menú izquierdo
+Haz clic en Tokens
+Clic en Generate New Token
+Nombre: terraform-practica
+Permisos: Read y Write
+Clic en Generate Token
+
+🎤 Di:
+
+"Copiamos el token generado. Este token solo se muestra una vez así que hay que guardarlo inmediatamente. Lo vamos a usar en el archivo de configuración de Terraform."
+
+
+PARTE 4 — Crear el proyecto Terraform
+🎤 Di esto:
+
+"Ahora vamos a crear los archivos de configuración de Terraform."
+
+bash# Crear el directorio de trabajo
+mkdir ~/terraform-do && cd ~/terraform-do
+
+# Verificar que estamos en el directorio correcto
+pwd
+bash# Crear el archivo principal main.tf
+cat > main.tf << 'EOF'
+terraform {
+  required_providers {
+    digitalocean = {
+      source  = "digitalocean/digitalocean"
+      version = "~> 2.0"
+    }
+  }
+}
+
+provider "digitalocean" {
+  token = var.do_token
+}
+
+resource "digitalocean_ssh_key" "ansible_key" {
+  name       = "ansible-controller-key"
+  public_key = var.ssh_public_key
+}
+
+resource "digitalocean_droplet" "OS3vm" {
+  image    = "ubuntu-22-04-x64"
+  name     = "OS3vm"
+  region   = "nyc1"
+  size     = "s-1vcpu-1gb"
+  ssh_keys = [digitalocean_ssh_key.ansible_key.fingerprint]
+
+  tags = ["ansible-client", "practica-os3"]
+}
+
+output "vm_ip_address" {
+  value       = digitalocean_droplet.OS3vm.ipv4_address
+  description = "IP pública de la VM OS3vm"
+}
+
+output "vm_name" {
+  value = digitalocean_droplet.OS3vm.name
+}
+EOF
+
+# Verificar el archivo
+cat main.tf
+🎤 Di:
+
+"En el archivo main.tf definimos el provider de Digital Ocean, la llave SSH y la Droplet con las especificaciones requeridas: imagen Ubuntu 22.04, nombre OS3vm, región NYC1 y tamaño s-1vcpu-1gb."
+
+bash# Crear el archivo de variables
+cat > variables.tf << 'EOF'
+variable "do_token" {
+  description = "Token de API de Digital Ocean"
+  type        = string
+  sensitive   = true
+}
+
+variable "ssh_public_key" {
+  description = "Llave pública SSH del Ansible Controller"
+  type        = string
+}
+EOF
+
+# Guardar la llave pública en una variable
+LLAVE=$(cat ~/.ssh/id_ed25519.pub)
+
+# Crear el archivo de valores
+cat > terraform.tfvars << EOF
+do_token       = "TU_TOKEN_AQUI"
+ssh_public_key = "$LLAVE"
+EOF
+
+# Verificar todos los archivos creados
+ls -la
+🎤 Di:
+
+"Tenemos los tres archivos de configuración listos. Ahora vamos a ejecutar Terraform."
+
+
+PARTE 5 — Ejecutar Terraform
+🎤 Di esto:
+
+"El primer comando es terraform init que inicializa el proyecto y descarga el provider de Digital Ocean."
+
+bashterraform init
+🎤 Di:
+
+"Terraform descargó e instaló el provider de Digital Ocean exitosamente. Ahora hacemos el plan para ver qué va a crear."
+
+bashterraform plan
+🎤 Mientras se muestra el plan di:
+
+"El plan nos muestra exactamente qué va a crear Terraform: la llave SSH y la Droplet OS3vm con todas sus especificaciones. Dice Plan 2 to add, lo que significa que va a crear 2 recursos nuevos. Ahora aplicamos."
+
+bashterraform apply
+Cuando pregunte escribe:
+yes
+🎤 Mientras espera di:
+
+"Terraform está creando los recursos en Digital Ocean. Primero registra la llave SSH y luego crea la Droplet. Esto tarda aproximadamente 30 a 60 segundos."
+
+🎤 Cuando termine di:
+
+"La VM fue creada exitosamente. Podemos ver en el output que la IP pública asignada es 143.198.189.206 y el nombre es OS3vm."
+
+
+PARTE 6 — Verificar por SSH
+🎤 Di esto:
+
+"Vamos a verificar que la VM está funcionando conectándonos por SSH."
+
+bash# Guardar la IP
+VM_IP="143.198.189.206"
+echo "IP de OS3vm: $VM_IP"
+
+# Conectar por SSH
+ssh -i ~/.ssh/id_ed25519 root@143.198.189.206
+Una vez dentro:
+bash# Verificar hostname
+hostname
+
+# Verificar kernel
+uname -a
+
+# Verificar sistema operativo
+cat /etc/os-release
+
+# Ver recursos del sistema
+free -h
+nproc
+df -h
+
+# Ver la IP desde adentro
+ip addr show
+
+# Salir
+exit
+🎤 Di:
+
+"Confirmamos que la VM OS3vm está corriendo Ubuntu 22.04 en Digital Ocean con 1 CPU y 1 GB de RAM, accesible mediante llave SSH desde nuestro servidor Oracle Linux."
+
+
+PARTE 7 — Verificar en el portal de Digital Ocean
+🎤 Di esto (abre el navegador):
+
+"También vamos a verificar desde el portal web de Digital Ocean que la VM fue creada correctamente."
+
+Muestra en el navegador:
+
+Ve a cloud.digitalocean.com
+Clic en Droplets
+Muestra OS3vm en la lista
+Clic en la VM para ver los detalles
+
+🎤 Di:
+
+"En el portal podemos ver la VM OS3vm activa en la región NYC1 con la IP 143.198.189.206, el tamaño s-1vcpu-1gb y las tags ansible-client y practica-os3. Todo coincide con lo que definimos en nuestro archivo de Terraform."
+
+
+PARTE 8 — Ver estado de Terraform
+bashcd ~/terraform-do
+
+# Listar recursos gestionados
+terraform state list
+
+# Ver detalles de la VM
+terraform state show digitalocean_droplet.OS3vm
+
+# Ver los outputs
+terraform output
+🎤 Di:
+
+"Terraform registra el estado de todos los recursos que gestiona. Esto nos permite saber en todo momento qué infraestructura está creada y cuál es su configuración actual."
+
+
+🎤 CIERRE PRÁCTICA 2
+
+"Hemos completado la Práctica 2 exitosamente. Instalamos Terraform, creamos los archivos de configuración, y desplegamos una VM Ubuntu 22.04 en Digital Ocean usando los comandos terraform init, terraform plan y terraform apply. La VM OS3vm está activa en NYC1 con la IP 143.198.189.206 y la verificamos tanto por SSH como desde el portal web de Digital Ocean. Esta VM será nuestro cliente Linux en las siguientes prácticas de Ansible. Recuerden que al finalizar el proyecto deben ejecutar terraform destroy para eliminar la VM y evitar costos adicionales."
