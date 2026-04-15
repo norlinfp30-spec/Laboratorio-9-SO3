@@ -90,7 +90,7 @@ ssh-keygen -t ed25519 -C "ansible-controller-oracle"
 cat ~/.ssh/id_ed25519.pub
 Configuración del proyecto
 mkdir ~/terraform-do && cd ~/terraform-do
-main.tf
+cat << 'EOF' > main.tf
 terraform {
   required_providers {
     digitalocean = {
