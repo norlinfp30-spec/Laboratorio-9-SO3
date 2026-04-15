@@ -311,3 +311,25 @@ resource "digitalocean_firewall" "firewall_examen" {
     destination_addresses = ["0.0.0.0/0", "::/0"]
   }
 }
+-----------------------------------------------------------------------------------------------------------------------------
+---
+- name: Configurar Usuario e Instalar Notepad++ en Windows
+  hosts: win
+  tasks:
+    # 1. Crear el usuario en Windows
+    - name: Crear usuario de Windows
+      win_user:
+        name: MarioExamen
+        password: Password123!
+        state: present
+        groups:
+          - Administrators  # Esto le da los permisos de administrador
+        groups_action: add
+
+    # 2. Instalar Notepad++ (Punto 2 de la imagen)
+    - name: Descargar e instalar Notepad++
+      win_package:
+        path: https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.5/npp.8.6.5.Installer.x64.exe
+        product_id: 'Notepad++'
+        arguments: /S
+        state: present
