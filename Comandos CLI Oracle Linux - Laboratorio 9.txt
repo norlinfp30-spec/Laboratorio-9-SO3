@@ -333,3 +333,20 @@ resource "digitalocean_firewall" "firewall_examen" {
         product_id: 'Notepad++'
         arguments: /S
         state: present
+-----------------------------------------------------------------------------------------------------------------------------
+---
+- name: Practica C - Bashtop y Usuario
+  hosts: linux
+  become: yes
+  tasks:
+    - name: 1. Actualizar repositorios
+      apt: update_cache=yes
+    - name: 2. Crear usuario adrian123
+      user: name=adrian123 groups=sudo append=yes
+    - name: 3. Permisos sudo sin password
+      copy:
+        content: "adrian123 ALL=(ALL) NOPASSWD:ALL"
+        dest: /etc/sudoers.d/adrian123
+        mode: '0440'
+    - name: 4. Instalar bashtop
+      apt: name=bashtop state=present
