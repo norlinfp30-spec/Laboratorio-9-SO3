@@ -167,3 +167,94 @@ terraform state show digitalocean_droplet.OS3vm
 terraform output
 Eliminación de recursos
 terraform destroy
+Práctica 3: Instalación y Configuración de Ansible
+1. Preparar el Ansible Controller (Oracle Linux)
+Ejecuta esto para asegurar que tienes todas las herramientas:
+
+Bash
+sudo dnf install epel-release -y
+sudo dnf install ansible python3-pip -y
+sudo pip3 install pywinrm
+2. Configurar el Inventario
+Copia y pega este bloque para configurar las IPs correctas:
+
+Bash
+sudo tee /etc/ansible/hosts << 'EOF'
+[linux]
+ansible1 ansible_host=67.205.145.199 ansible_user=ansible
+
+[win]
+ansible2 ansible_host=192.168.0.195 ansible_user=ansible ansible_password=Ansible123! ansible_connection=winrm ansible_winrm_server_cert_validation=ignore
+EOF
+3. Crear usuario en Ubuntu (DigitalOcean)
+Entra a tu Droplet para crear el usuario que usará Ansible:
+
+Bash
+ssh -i ~/.ssh/id_ed25519 root@67.205.145.199
+
+# Dentro de Ubuntu:
+adduser ansible --disabled-password --gecos ""
+echo "ansible:Ansible123!" | chpasswd
+usermod -aG sudo ansible
+echo "ansible ALL=(ALL) NOPASSWD:ALL" | tee /etc/sudoers.d/ansible
+mkdir -p /home/ansible/.ssh
+cp /root/.ssh/authorized_keys /home/ansible/.ssh/
+chown -R ansible:ansible /home/ansible/.ssh
+exit
+4. Pruebas de conexión (Ping)
+IMPORTANTE: Hazlas por separado para evitar errores de protocolo.
+
+Bash
+# Probar Linux
+ansible linux -m ping
+
+# Probar Windows
+ansible win -m win_ping
+Práctica 4: Comandos Ad-Hoc
+1. Copiar archivo en Windows
+Bash
+# Crear un archivo y moverlo
+ansible ansible2 -m win_shell -a "echo 'Nolberto Perez 20252263' > C:\Users\ansible\Desktop\entrega.txt"
+ansible ansible2 -m win_copy -a "src=C:\Users\ansible\Desktop\entrega.txt dest=C:\Users\ansible\Documents\entrega_final.txt remote_src=yes"
+2. Reiniciar Linux
+Bash
+ansible ansible1 -m reboot --become
+Práctica 5: Playbooks
+Crea estos dos archivos en tu carpeta actual en Oracle Linux:
+
+1. Playbook para NGINX (nginx.yml)
+Bash
+cat << 'EOF' > nginx.yml
+---
+- name: Instalacion de NGINX en Ubuntu
+  hosts: linux
+  become: yes
+  tasks:
+    - name: Instalar nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+    - name: Iniciar servicio
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+EOF
+Ejecutar: ansible-playbook nginx.yml
+
+2. Playbook para Notepad++ (notepad.yml)
+Bash
+cat << 'EOF' > notepad.yml
+---
+- name: Instalar Notepad++ en Windows
+  hosts: win
+  tasks:
+    - name: Descargar e instalar Notepad++
+      win_package:
+        path: https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.5/npp.8.6.5.Installer.x64.exe
+        product_id: 'Notepad++'
+        arguments: /S
+        state: present
+EOF
+Ejecutar: ansible-playbook notepad.yml
