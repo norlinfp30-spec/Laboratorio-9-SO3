@@ -258,3 +258,56 @@ cat << 'EOF' > notepad.yml
         state: present
 EOF
 Ejecutar: ansible-playbook notepad.yml
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+# 1. Crear el Proyecto (Requerimiento Punto 1)
+resource "digitalocean_project" "examen_final" {
+  name        = "examen final"
+  description = "Proyecto para el examen final de OS3"
+  purpose     = "Class project / Educational purposes"
+  resources   = [digitalocean_droplet.OS3vm.urn]
+}
+
+# 2. Configurar el Firewall (Requerimiento Punto 3)
+resource "digitalocean_firewall" "firewall_examen" {
+  name = "firewall-practica-d"
+
+  droplet_ids = [digitalocean_droplet.OS3vm.id]
+
+  # Reglas de Entrada (Puertos: 22, 80, 443, 445)
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "22"
+    source_addresses = ["0.0.0.0/0", "::/0"]
+  }
+
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "80"
+    source_addresses = ["0.0.0.0/0", "::/0"]
+  }
+
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "443"
+    source_addresses = ["0.0.0.0/0", "::/0"]
+  }
+
+  inbound_rule {
+    protocol         = "tcp"
+    port_range       = "445"
+    source_addresses = ["0.0.0.0/0", "::/0"]
+  }
+
+  # Reglas de Salida (Permitir todo por defecto)
+  outbound_rule {
+    protocol              = "tcp"
+    port_range           = "1-65535"
+    destination_addresses = ["0.0.0.0/0", "::/0"]
+  }
+  
+  outbound_rule {
+    protocol              = "udp"
+    port_range           = "1-65535"
+    destination_addresses = ["0.0.0.0/0", "::/0"]
+  }
+}
