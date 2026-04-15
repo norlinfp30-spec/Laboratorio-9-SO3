@@ -126,7 +126,8 @@ output "vm_ip_address" {
 output "vm_name" {
   value = digitalocean_droplet.OS3vm.name
 }
-variables.tf
+EOF
+cat << 'EOF' > variables.tf
 variable "do_token" {
   type      = string
   sensitive = true
@@ -135,6 +136,7 @@ variable "do_token" {
 variable "ssh_public_key" {
   type = string
 }
+EOF
 terraform.tfvars (NO subir a GitHub)
 LLAVE=$(cat ~/.ssh/id_ed25519.pub)
 
